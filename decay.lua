@@ -91,7 +91,7 @@ function PLUGIN:cmdDecay( netuser, args )
             self:PrintDecayStatus( netuser )
         elseif (type(tonumber(args[1])) == "number") then
             if (strsub(string.lower(args[2]), 1, 4) == "hour") then
-                self.Config.DecayTime = (math.floor(args[1]) * 60)
+                self.Config.DecayTime = round( (args[1] * 3600), 0 )
 -- Had to stop here, bloody 5am! Doh.
 end
 

@@ -53,13 +53,13 @@ function PLUGIN:HasFlag(netuser, flag)
 end
 
 function PLUGIN:LoadConfig()
-	local b, res = config.Read("decay")
-	self.Config = res or {}
-	if (not b) then
-		print("Decay Control: Creating default config...")
-		self:LoadDefaultConfig()
-		if (res) then config.Save("decay") end
-	end
+    local b, res = config.Read("decay")
+    self.Config = res or {}
+    if (not b) then
+        print("Decay Control: Creating default config...")
+        self:LoadDefaultConfig()
+        if (res) then config.Save("decay") end
+    end
 --	if ( self.Config.ConfigVersion < self.ConfigVersion ) then
 --		print("Decay Control's configuration file needs to be updated - backing up and replacing with default values.")
 --		ConfigUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
@@ -74,20 +74,19 @@ function PLUGIN:LoadDefaultConfig()
     self.Config.CheckForUpdates = true
     self.Config.DecayOff = true
     self.Config.DecayTime = 4838400
+    self.Config.PublicDecayStatus = true
 end
 
 function PLUGIN:cmdDecay( netuser, args )
     if (self:HasFlag(netuser,"decay")) then
         if ((not args) or (args[1] == "?") or (args[1] == "help"))
-            self:PrintDecayStatus( netuser )
             self:PrintSyntax( netuser )
-            return
         elseif (string.lower(args[1]) == "on") then
+            self.Config.DecayOff = false
             self:EnableDecay()
-            self:PrintDecayStatus( netuser )
         elseif (string.lower(args[1]) == "off") then
+            self.Config.DecayOff = true
             self:DisableDecay()
-            self:PrintDecayStatus( netuser )
         elseif (type(tonumber(args[1])) == "number") then
             if     (strsub(string.lower(args[2]), 1, 4) == "hour") then
                 self.Config.DecayTime = round( (args[1] *   3600), 0 )
@@ -101,9 +100,20 @@ function PLUGIN:cmdDecay( netuser, args )
             	self.Config.DecayTime = round( (args[1] *  86400), 0 )
             else
             	self:PrintSyntax( netuser )
+            	self:PrintDecayStatus( netuser )
             	return
-            
--- Had to stop here, bloody 5am! Doh.
+            end
+            self.Config.DecayOff = false
+            self:EnableDecay()
+        end
+        self:PrintDecayStatus( netuser )
+    else
+    	if (self.Config.PublicDecayStatus) then
+    	    self:PrintDecayStatus( netuser )
+    	else
+    	    rust.SendChatToUser("Decay Control: You do not have access to this command.")
+    	end
+    end
 end
 
 function PLUGIN:DisableDecay()

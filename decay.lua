@@ -1,7 +1,7 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
-PLUGIN.Description   = "Turns decay on or off, with the option to leave it on and extend the time it takes for structures to decay."
-PLUGIN.Version       = "0.6"
+PLUGIN.Description   = "Turns decay of buildings on or off, with the option to leave decay on but customise the time it takes for structures to decay."
+PLUGIN.Version       = "0.8"
 PLUGIN.ConfigVersion = "0.5"
 PLUGIN.ResourceID    = "334"
 
@@ -162,6 +162,7 @@ function PLUGIN:EnableDecay( frominit )
         DecayRateSetTimer = timer.Once( 60, function() rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime))) end )
     else
     rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime)))
+    end
 end
 
 function PLUGIN:CalculateDecayTime( secs )

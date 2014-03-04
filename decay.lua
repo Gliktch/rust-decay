@@ -80,8 +80,7 @@ function PLUGIN:cmdDecay( netuser, args )
     if (self:HasFlag(netuser,"decay")) then
         if ((not args) or (args[1] == "?") or (args[1] == "help"))
             self:PrintDecayStatus( netuser )
-            rust.SendChatToUser( netuser, "Decay Control Syntax: You may use /decay [number] [hour[s]|day[s]|week[s]]")
-            rust.SendChatToUser( netuser, "or /decay [on|off], or simply /decay by itself to show current settings.")
+            self:PrintSyntax( netuser )
             return
         elseif (string.lower(args[1]) == "on") then
             self:EnableDecay()
@@ -90,8 +89,20 @@ function PLUGIN:cmdDecay( netuser, args )
             self:DisableDecay()
             self:PrintDecayStatus( netuser )
         elseif (type(tonumber(args[1])) == "number") then
-            if (strsub(string.lower(args[2]), 1, 4) == "hour") then
-                self.Config.DecayTime = round( (args[1] * 3600), 0 )
+            if     (strsub(string.lower(args[2]), 1, 4) == "hour") then
+                self.Config.DecayTime = round( (args[1] *   3600), 0 )
+            elseif (strsub(string.lower(args[2]), 1, 3) == "day") then
+            	self.Config.DecayTime = round( (args[1] *  86400), 0 )
+            elseif (strsub(string.lower(args[2]), 1, 4) == "week") then
+            	self.Config.DecayTime = round( (args[1] * 604800), 0)
+            -- Assume 'days' if the unit of DecayTime is not provided
+            elseif (not args[2]) then
+            	rust.SendChatToUser("Decay Control: Assuming you meant " .. tonumber(args[1]) .. " days.")
+            	self.Config.DecayTime = round( (args[1] *  86400), 0 )
+            else
+            	self:PrintSyntax( netuser )
+            	return
+            
 -- Had to stop here, bloody 5am! Doh.
 end
 
@@ -123,4 +134,9 @@ end
 
 function PLUGIN:PrintDecayStatus( netuser )
     rust.SendChatToUser(netuser, "Decay is currently " .. (toboolean(self.Config.DecayOff)) and "OFF.  Decay Control is continuously keeping buildings from decaying. :)" or "ON, Decay Time is " .. self:CalculateDecayTime(self.Config.DecayTime) .. ".")
+end
+
+function PLUGIN:PrintSyntax( netuser )
+    rust.SendChatToUser( netuser, "Decay Control Syntax: You may use /decay [number] [hour[s]|day[s]|week[s]]")
+    rust.SendChatToUser( netuser, "or /decay [on|off], or simply /decay by itself to show current settings.")
 end

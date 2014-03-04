@@ -165,6 +165,11 @@ function PLUGIN:EnableDecay( frominit )
     end
 end
 
+function round(num, dec)
+  local pow = 10^(dec or 0)
+  return math.floor(num * pow + 0.5) / pow
+end
+
 function PLUGIN:CalculateDecayTime( secs )
     if (secs < 86400) then
         result = round((secs / 3600), 2) .. " hour(s)"

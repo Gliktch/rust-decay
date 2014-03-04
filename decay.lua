@@ -60,13 +60,13 @@ function PLUGIN:LoadConfig()
         self:LoadDefaultConfig()
         if (res) then config.Save("decay") end
     end
---	if ( self.Config.ConfigVersion < self.ConfigVersion ) then
---		print("Decay Control's configuration file needs to be updated - backing up and replacing with default values.")
---		ConfigUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
---		config.Save( "decay_backupconfig" )
---		self:LoadDefaultConfig()
---		config.Save( "decay" )
---	end
+--    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
+--        print("Decay Control's configuration file needs to be updated - backing up and replacing with default values.")
+--        ConfigUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
+--        config.Save( "decay_backupconfig" )
+--        self:LoadDefaultConfig()
+--        config.Save( "decay" )
+--    end
 end
 
 function PLUGIN:LoadDefaultConfig()
@@ -75,11 +75,12 @@ function PLUGIN:LoadDefaultConfig()
     self.Config.DecayOff = true
     self.Config.DecayTime = 4838400
     self.Config.PublicDecayStatus = true
+    self.Config.CheckTickRate = true
 end
 
 function PLUGIN:cmdDecay( netuser, args )
     if (self:HasFlag(netuser,"decay")) then
-        if ((not args) or (args[1] == "?") or (args[1] == "help"))
+        if ((not args) or (args[1] == "?") or (args[1] == "help")) then
             self:PrintSyntax( netuser )
         elseif (string.lower(args[1]) == "on") then
             self.Config.DecayOff = false
@@ -91,28 +92,28 @@ function PLUGIN:cmdDecay( netuser, args )
             if     (strsub(string.lower(args[2]), 1, 4) == "hour") then
                 self.Config.DecayTime = round( (args[1] *   3600), 0 )
             elseif (strsub(string.lower(args[2]), 1, 3) == "day") then
-            	self.Config.DecayTime = round( (args[1] *  86400), 0 )
+                self.Config.DecayTime = round( (args[1] *  86400), 0 )
             elseif (strsub(string.lower(args[2]), 1, 4) == "week") then
-            	self.Config.DecayTime = round( (args[1] * 604800), 0)
+                self.Config.DecayTime = round( (args[1] * 604800), 0)
             -- Assume 'days' if the unit of DecayTime is not provided
             elseif (not args[2]) then
-            	rust.SendChatToUser("Decay Control: Assuming you meant " .. tonumber(args[1]) .. " days.")
-            	self.Config.DecayTime = round( (args[1] *  86400), 0 )
+                rust.SendChatToUser("Decay Control: Assuming you meant " .. tonumber(args[1]) .. " days.")
+                self.Config.DecayTime = round( (args[1] *  86400), 0 )
             else
-            	self:PrintSyntax( netuser )
-            	self:PrintDecayStatus( netuser )
-            	return
+                self:PrintSyntax( netuser )
+                self:PrintDecayStatus( netuser )
+                return
             end
             self.Config.DecayOff = false
             self:EnableDecay()
         end
         self:PrintDecayStatus( netuser )
     else
-    	if (self.Config.PublicDecayStatus) then
-    	    self:PrintDecayStatus( netuser )
-    	else
-    	    rust.SendChatToUser("Decay Control: You do not have access to this command.")
-    	end
+        if (self.Config.PublicDecayStatus) then
+            self:PrintDecayStatus( netuser )
+        else
+            rust.SendChatToUser("Decay Control: You do not have access to this command.")
+        end
     end
 end
 
@@ -124,18 +125,18 @@ function PLUGIN:DisableDecay()
 end
 
 function PLUGIN:EnableDecay()
+    self:CheckTickRate()
     if (DecayTouchTimer) then
         DecayTouchTimer:Destroy()
---        if (DecayReinstateAlertTimer) then
---            DecayReinstateAlertTimer:Destroy()
---        end
---        DecayReinstateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Decay has been re-enabled. Decay time is now set to " .. self:CalculateDecayTime(self.Config.DecayTime)) end )
---        end
+--      if (DecayReinstateAlertTimer) then
+--          DecayReinstateAlertTimer:Destroy()
+--      end
+--      DecayReinstateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Decay has been re-enabled. Decay time is now set to " .. self:CalculateDecayTime(self.Config.DecayTime)) end )
     end
 end
 
 function PLUGIN:CheckTickRate()
-    if ((not Rust.decay.decaytickrate) or (Rust.decay.decaytickrate < 100)) then
+    if ((self.Config.CheckTickRate) and ((not Rust.decay.decaytickrate) or (Rust.decay.decaytickrate < 100))) then
         error("Decay Control: DecayTickRate setting too low or not found - resetting to default (300).")
         rust.BroadcastChat("Decay Control: DecayTickRate setting too low or not found - resetting to default (300).")
         rust.RunServerCommand("decay.decaytickrate 300")

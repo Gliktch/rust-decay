@@ -20,9 +20,8 @@ function PLUGIN:Init()
     if (self.Config.DecayOff) then
         self:DisableDecay()
     else
-        self:EnableDecay()
+        self:EnableDecay( true )
     end
-    -- decayset = timer.Once( 60, function() rust.RunServerCommand("decay.deploy_maxhealth_sec 4838400") end )
 end
 
 function PLUGIN:PostInit()
@@ -60,13 +59,13 @@ function PLUGIN:LoadConfig()
         self:LoadDefaultConfig()
         if (res) then config.Save("decay") end
     end
---    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
---        print("Decay Control's configuration file needs to be updated - backing up and replacing with default values.")
---        ConfigUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
---        config.Save( "decay_backupconfig" )
---        self:LoadDefaultConfig()
---        config.Save( "decay" )
---    end
+    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
+        print("Decay Control's configuration file needs to be updated - backing up and replacing with default values.")
+        ConfigUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
+        config.Save( "decay_backupconfig" )
+        self:LoadDefaultConfig()
+        config.Save( "decay" )
+    end
 end
 
 function PLUGIN:LoadDefaultConfig()
@@ -78,15 +77,38 @@ function PLUGIN:LoadDefaultConfig()
     self.Config.CheckTickRate = true
 end
 
+function PLUGIN:UpdateCheck()
+    if (self.ResourceID) then
+        self.url = "http://wulf.im/oxide/" .. self.ResourceID
+        local request = webrequest.Send(url, function(code, response)
+            if (code == 200) then
+                if (self.Version < response) then
+                    updatemsg = "Alert: \"" .. self.Title .. "\" (filename " .. self.Filename .. ".lua) has an update available, from v" .. self.Version .. " to v" .. response .. "."
+                    error(updatemsg)
+                    error("Visit http://forum.rustoxide.com/resources/" .. self.ResourceID .. "/ to download the latest version!")
+                    DecayControlUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat(updatemsg) end )
+                    else
+                end
+            else
+                updatefailed = true
+            end
+        end)
+        if ((not request) or (updatefailed)) then
+            errmsg = "Alert: Update Check Failed for \"" .. tostring(self.Title) .. "\" (filename " .. tostring(self.Filename) .. ".lua) v" .. tostring(self.Version) .. "."
+            DecayControlUpdateFailTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat( errmsg ) end )
+            error(errmsg)
+        end
+    end
+end
+
+
 function PLUGIN:cmdDecay( netuser, args )
     if (self:HasFlag(netuser,"decay")) then
         if ((not args) or (args[1] == "?") or (args[1] == "help")) then
             self:PrintSyntax( netuser )
         elseif (string.lower(args[1]) == "on") then
-            self.Config.DecayOff = false
             self:EnableDecay()
         elseif (string.lower(args[1]) == "off") then
-            self.Config.DecayOff = true
             self:DisableDecay()
         elseif (type(tonumber(args[1])) == "number") then
             if     (strsub(string.lower(args[2]), 1, 4) == "hour") then
@@ -104,7 +126,6 @@ function PLUGIN:cmdDecay( netuser, args )
                 self:PrintDecayStatus( netuser )
                 return
             end
-            self.Config.DecayOff = false
             self:EnableDecay()
         end
         self:PrintDecayStatus( netuser )
@@ -122,9 +143,11 @@ function PLUGIN:DisableDecay()
     if (not DecayTouchTimer) then
         DecayTouchTimer = timer.Repeat( 60, function() rust.RunServerCommand("structure.touchall") end )
     end
+    self.Config.DecayOff = true
+    config.Save("decay")
 end
 
-function PLUGIN:EnableDecay()
+function PLUGIN:EnableDecay( frominit )
     self:CheckTickRate()
     if (DecayTouchTimer) then
         DecayTouchTimer:Destroy()
@@ -133,6 +156,23 @@ function PLUGIN:EnableDecay()
 --      end
 --      DecayReinstateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Decay has been re-enabled. Decay time is now set to " .. self:CalculateDecayTime(self.Config.DecayTime)) end )
     end
+    self.Config.DecayOff = false
+    config.Save("decay")
+    if (frominit) then
+        DecayRateSetTimer = timer.Once( 60, function() rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime))) end )
+    else
+    rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime)))
+end
+
+function PLUGIN:CalculateDecayTime( secs )
+    if (secs < 86400) then
+        result = round((secs / 3600), 2) .. " hour(s)"
+    elseif (secs < 604800) then
+        result = round((secs / 86400), 2) .. " day(s)"
+    else
+        result = round((secs / 604800), 2) .. " week(s)"
+    end
+    return result
 end
 
 function PLUGIN:CheckTickRate()

@@ -1,7 +1,7 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
-PLUGIN.Description   = "Turns decay of buildings on or off, with the option to leave decay on but customise the time it takes for structures to decay."
-PLUGIN.Version       = "0.8.3"
+PLUGIN.Description   = "Turns building decay on or off, with the option to leave decay on but customise the time it takes for structures to decay."
+PLUGIN.Version       = "0.8.4"
 PLUGIN.ConfigVersion = "0.5"
 PLUGIN.ResourceID    = "334"
 
@@ -11,9 +11,9 @@ function PLUGIN:Init()
 
     self:LoadConfig()
 
-    if self.Config.CheckForUpdates then
-        self:UpdateCheck()
-    end
+--    if self.Config.CheckForUpdates then
+--        self:UpdateCheck()
+--    end
 
     self:AddChatCommand( "decay", self.cmdDecay )
 
@@ -77,29 +77,29 @@ function PLUGIN:LoadDefaultConfig()
     self.Config.CheckTickRate = true
 end
 
-function PLUGIN:UpdateCheck()
-    if (self.ResourceID) then
-        self.url = "http://wulf.im/oxide/" .. self.ResourceID
-        local request = webrequest.Send(url, function(code, response)
-            if (code == 200) then
-                if (self.Version < response) then
-                    updatemsg = "Alert: \"" .. self.Title .. "\" (filename " .. self.Filename .. ".lua) has an update available, from v" .. self.Version .. " to v" .. response .. "."
-                    error(updatemsg)
-                    error("Visit http://forum.rustoxide.com/resources/" .. self.ResourceID .. "/ to download the latest version!")
-                    DecayControlUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat(updatemsg) end )
-                    else
-                end
-            else
-                updatefailed = true
-            end
-        end)
-        if ((not request) or (updatefailed)) then
-            errmsg = "Alert: Update Check Failed for \"" .. tostring(self.Title) .. "\" (filename " .. tostring(self.Filename) .. ".lua) v" .. tostring(self.Version) .. "."
-            DecayControlUpdateFailTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat( errmsg ) end )
-            error(errmsg)
-        end
-    end
-end
+--function PLUGIN:UpdateCheck()
+--    if (self.ResourceID) then
+--        self.url = "http://wulf.im/oxide/" .. self.ResourceID
+--        local request = webrequest.Send(url, function(code, response)
+--            if (code == 200) then
+--                if (self.Version < response) then
+--                    updatemsg = "Alert: \"" .. self.Title .. "\" (filename " .. self.Filename .. ".lua) has an update available, from v" .. self.Version .. " to v" .. response .. "."
+--                    error(updatemsg)
+--                    error("Visit http://forum.rustoxide.com/resources/" .. self.ResourceID .. "/ to download the latest version!")
+--                    DecayControlUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat(updatemsg) end )
+--                    else
+--                end
+--            else
+--                updatefailed = true
+--            end
+--        end)
+--        if ((not request) or (updatefailed)) then
+--            errmsg = "Alert: Update Check Failed for \"" .. tostring(self.Title) .. "\" (filename " .. tostring(self.Filename) .. ".lua) v" .. tostring(self.Version) .. "."
+--            DecayControlUpdateFailTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat( errmsg ) end )
+--            error(errmsg)
+--        end
+--    end
+--end
 
 
 function PLUGIN:cmdDecay( netuser, args )
@@ -190,7 +190,8 @@ function PLUGIN:CheckTickRate()
 end
 
 function PLUGIN:PrintDecayStatus( netuser )
-    rust.SendChatToUser(netuser, "Decay is currently " .. (toboolean(self.Config.DecayOff)) and "OFF.  Decay Control is continuously keeping buildings from decaying. :)" or "ON, Decay Time is " .. self:CalculateDecayTime(self.Config.DecayTime) .. ".")
+    statusmsg = "Decay is currently " .. (toboolean(self.Config.DecayOff) and "OFF.  Decay Control is continuously keeping buildings from decaying. :)" or "ON, Decay Time is " .. self:CalculateDecayTime(self.Config.DecayTime) .. ".")
+    rust.SendChatToUser(netuser, statusmsg)
 end
 
 function PLUGIN:PrintSyntax( netuser )

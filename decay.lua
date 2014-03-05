@@ -1,7 +1,7 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
 PLUGIN.Description   = "Turns building decay on or off, with the option to leave decay on but customise the time it takes for structures to decay."
-PLUGIN.Version       = "0.8.6"
+PLUGIN.Version       = "0.8.7"
 PLUGIN.ConfigVersion = "0.5"
 PLUGIN.ResourceID    = "334"
 
@@ -112,11 +112,11 @@ function PLUGIN:cmdDecay( netuser, args )
             self:DisableDecay( netuser )
         elseif (type(tonumber(args[1])) == "number") then
             if (args[2]) then
-                if     (strsub(string.lower(args[2]), 1, 4) == "hour") then
+                if     (string.sub(string.lower(args[2]), 1, 4) == "hour") then
                     self.Config.DecayTime = round( (args[1] *   3600), 0 )
-                elseif (strsub(string.lower(args[2]), 1, 3) == "day") then
+                elseif (string.sub(string.lower(args[2]), 1, 3) == "day") then
                     self.Config.DecayTime = round( (args[1] *  86400), 0 )
-                elseif (strsub(string.lower(args[2]), 1, 4) == "week") then
+                elseif (string.sub(string.lower(args[2]), 1, 4) == "week") then
                     self.Config.DecayTime = round( (args[1] * 604800), 0)
                 else
                     self:PrintSyntax( netuser )

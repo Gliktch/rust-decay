@@ -1,7 +1,7 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
 PLUGIN.Description   = "Turns building decay on or off, with the option to leave decay on but customise the time it takes for structures to decay."
-PLUGIN.Version       = "0.8.7"
+PLUGIN.Version       = "0.8.8"
 PLUGIN.ConfigVersion = "0.5"
 PLUGIN.ResourceID    = "334"
 
@@ -113,11 +113,11 @@ function PLUGIN:cmdDecay( netuser, args )
         elseif (type(tonumber(args[1])) == "number") then
             if (args[2]) then
                 if     (string.sub(string.lower(args[2]), 1, 4) == "hour") then
-                    self.Config.DecayTime = round( (args[1] *   3600), 0 )
+                    self.Config.DecayTime = self:round( (args[1] *   3600), 0 )
                 elseif (string.sub(string.lower(args[2]), 1, 3) == "day") then
-                    self.Config.DecayTime = round( (args[1] *  86400), 0 )
+                    self.Config.DecayTime = self:round( (args[1] *  86400), 0 )
                 elseif (string.sub(string.lower(args[2]), 1, 4) == "week") then
-                    self.Config.DecayTime = round( (args[1] * 604800), 0)
+                    self.Config.DecayTime = self:round( (args[1] * 604800), 0)
                 else
                     self:PrintSyntax( netuser )
                     return
@@ -125,7 +125,7 @@ function PLUGIN:cmdDecay( netuser, args )
             else
             -- Assume 'days' if the unit of DecayTime is not provided
                 rust.SendChatToUser("Decay Control: Assuming you meant " .. tonumber(args[1]) .. " days.")
-                self.Config.DecayTime = round( (args[1] *  86400), 0 )
+                self.Config.DecayTime = self:round( (args[1] *  86400), 0 )
             end
             self:EnableDecay( netuser )
         else
@@ -176,18 +176,22 @@ function PLUGIN:EnableDecay( netuser )
     print(onmsg)
 end
 
-function round(num, dec)
+function PLUGIN:toboolean(var)
+  return not not var
+end
+
+function PLUGIN:round(num, dec)
   local pow = 10^(dec or 0)
   return math.floor(num * pow + 0.5) / pow
 end
 
 function PLUGIN:CalculateDecayTime( secs )
     if (secs < 86400) then
-        result = round((secs / 3600), 2) .. " hour(s)"
+        result = self:round((secs / 3600), 2) .. " hour(s)"
     elseif (secs < 604800) then
-        result = round((secs / 86400), 2) .. " day(s)"
+        result = self:round((secs / 86400), 2) .. " day(s)"
     else
-        result = round((secs / 604800), 2) .. " week(s)"
+        result = self:round((secs / 604800), 2) .. " week(s)"
     end
     return result
 end
@@ -201,7 +205,7 @@ function PLUGIN:CheckTickRate()
 end
 
 function PLUGIN:PrintDecayStatus( netuser )
-    statusmsg = "Decay is currently " .. (toboolean(self.Config.DecayOff) and "OFF.  Decay Control is continuously keeping buildings from decaying. :)" or "ON, Decay Time is " .. self:CalculateDecayTime(self.Config.DecayTime) .. ".")
+    statusmsg = "Decay is currently " .. (self:toboolean(self.Config.DecayOff) and "OFF.  Decay Control is continuously keeping buildings from decaying. :)" or "ON, Decay Time is " .. self:CalculateDecayTime(self.Config.DecayTime) .. ".")
     rust.SendChatToUser( netuser, statusmsg )
 end
 

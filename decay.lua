@@ -1,7 +1,7 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
 PLUGIN.Description   = "Turns decay of buildings on or off, with the option to leave decay on but customise the time it takes for structures to decay."
-PLUGIN.Version       = "0.8"
+PLUGIN.Version       = "0.8.3"
 PLUGIN.ConfigVersion = "0.5"
 PLUGIN.ResourceID    = "334"
 
@@ -104,7 +104,7 @@ end
 
 function PLUGIN:cmdDecay( netuser, args )
     if (self:HasFlag(netuser,"decay")) then
-        if ((not args) or (args[1] == "?") or (args[1] == "help")) then
+        if ((not args[1]) or (args[1] == "?") or (args[1] == "help")) then
             self:PrintSyntax( netuser )
         elseif (string.lower(args[1]) == "on") then
             self:EnableDecay()

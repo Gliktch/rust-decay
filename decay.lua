@@ -1,7 +1,7 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
 PLUGIN.Description   = "Turns building decay on or off, with the option to leave decay on but customise the time it takes for structures to decay."
-PLUGIN.Version       = "0.8.4"
+PLUGIN.Version       = "0.8.6"
 PLUGIN.ConfigVersion = "0.5"
 PLUGIN.ResourceID    = "334"
 
@@ -20,7 +20,7 @@ function PLUGIN:Init()
     if (self.Config.DecayOff) then
         self:DisableDecay()
     else
-        self:EnableDecay( true )
+        self:EnableDecay()
     end
 end
 
@@ -59,13 +59,13 @@ function PLUGIN:LoadConfig()
         self:LoadDefaultConfig()
         if (res) then config.Save("decay") end
     end
-    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
-        print("Decay Control's configuration file needs to be updated - backing up and replacing with default values.")
-        ConfigUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
-        config.Save( "decay_backupconfig" )
-        self:LoadDefaultConfig()
-        config.Save( "decay" )
-    end
+--    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
+--        print("Decay Control's configuration file needs to be updated - backing up and replacing with default values.")
+--        ConfigUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
+--        config.Save( "decay_backupconfig" )
+--        self:LoadDefaultConfig()
+--        config.Save( "decay" )
+--    end
 end
 
 function PLUGIN:LoadDefaultConfig()
@@ -107,26 +107,29 @@ function PLUGIN:cmdDecay( netuser, args )
         if ((not args[1]) or (args[1] == "?") or (args[1] == "help")) then
             self:PrintSyntax( netuser )
         elseif (string.lower(args[1]) == "on") then
-            self:EnableDecay()
+            self:EnableDecay( netuser )
         elseif (string.lower(args[1]) == "off") then
-            self:DisableDecay()
+            self:DisableDecay( netuser )
         elseif (type(tonumber(args[1])) == "number") then
-            if     (strsub(string.lower(args[2]), 1, 4) == "hour") then
-                self.Config.DecayTime = round( (args[1] *   3600), 0 )
-            elseif (strsub(string.lower(args[2]), 1, 3) == "day") then
-                self.Config.DecayTime = round( (args[1] *  86400), 0 )
-            elseif (strsub(string.lower(args[2]), 1, 4) == "week") then
-                self.Config.DecayTime = round( (args[1] * 604800), 0)
+            if (args[2]) then
+                if     (strsub(string.lower(args[2]), 1, 4) == "hour") then
+                    self.Config.DecayTime = round( (args[1] *   3600), 0 )
+                elseif (strsub(string.lower(args[2]), 1, 3) == "day") then
+                    self.Config.DecayTime = round( (args[1] *  86400), 0 )
+                elseif (strsub(string.lower(args[2]), 1, 4) == "week") then
+                    self.Config.DecayTime = round( (args[1] * 604800), 0)
+                else
+                    self:PrintSyntax( netuser )
+                    return
+                end
+            else
             -- Assume 'days' if the unit of DecayTime is not provided
-            elseif (not args[2]) then
                 rust.SendChatToUser("Decay Control: Assuming you meant " .. tonumber(args[1]) .. " days.")
                 self.Config.DecayTime = round( (args[1] *  86400), 0 )
-            else
-                self:PrintSyntax( netuser )
-                self:PrintDecayStatus( netuser )
-                return
             end
-            self:EnableDecay()
+            self:EnableDecay( netuser )
+        else
+            self:PrintSyntax( netuser )
         end
         self:PrintDecayStatus( netuser )
     else
@@ -138,16 +141,21 @@ function PLUGIN:cmdDecay( netuser, args )
     end
 end
 
-function PLUGIN:DisableDecay()
+function PLUGIN:DisableDecay( netuser )
     self:CheckTickRate()
     if (not DecayTouchTimer) then
         DecayTouchTimer = timer.Repeat( 60, function() rust.RunServerCommand("structure.touchall") end )
     end
     self.Config.DecayOff = true
     config.Save("decay")
+    offmsg = "Decay Control: Decay has been disabled."
+    if (netuser) then
+        rust.SendChatToUser( netuser, offmsg )
+    end
+    print(offmsg)
 end
 
-function PLUGIN:EnableDecay( frominit )
+function PLUGIN:EnableDecay( netuser )
     self:CheckTickRate()
     if (DecayTouchTimer) then
         DecayTouchTimer:Destroy()
@@ -158,11 +166,14 @@ function PLUGIN:EnableDecay( frominit )
     end
     self.Config.DecayOff = false
     config.Save("decay")
-    if (frominit) then
+    onmsg = "Decay Control: Decay has been enabled."
+    if (not netuser) then
         DecayRateSetTimer = timer.Once( 60, function() rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime))) end )
     else
-    rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime)))
+        rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime)))
+        rust.SendChatToUser( netuser, onmsg )
     end
+    print(onmsg)
 end
 
 function round(num, dec)
@@ -191,10 +202,10 @@ end
 
 function PLUGIN:PrintDecayStatus( netuser )
     statusmsg = "Decay is currently " .. (toboolean(self.Config.DecayOff) and "OFF.  Decay Control is continuously keeping buildings from decaying. :)" or "ON, Decay Time is " .. self:CalculateDecayTime(self.Config.DecayTime) .. ".")
-    rust.SendChatToUser(netuser, statusmsg)
+    rust.SendChatToUser( netuser, statusmsg )
 end
 
 function PLUGIN:PrintSyntax( netuser )
-    rust.SendChatToUser( netuser, "Decay Control Syntax: You may use /decay [number] [hour[s]|day[s]|week[s]]")
+    rust.SendChatToUser( netuser, "Decay Control Syntax: You may use /decay [number] [hour(s)|day(s)|week(s)]")
     rust.SendChatToUser( netuser, "or /decay [on|off], or simply /decay by itself to show current settings.")
 end

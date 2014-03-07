@@ -1,8 +1,8 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
 PLUGIN.Description   = "Turns building decay on or off, with the option to leave decay on but customise the time it takes for structures to decay."
-PLUGIN.Version       = "0.8.8"
-PLUGIN.ConfigVersion = "0.5"
+PLUGIN.Version       = "0.9.0"
+PLUGIN.ConfigVersion = "0.9"
 PLUGIN.ResourceID    = "334"
 
 function PLUGIN:Init()
@@ -11,9 +11,9 @@ function PLUGIN:Init()
 
     self:LoadConfig()
 
---    if self.Config.CheckForUpdates then
---        self:UpdateCheck()
---    end
+    if self.Config.CheckForUpdates then
+        self:UpdateCheck()
+    end
 
     self:AddChatCommand( "decay", self.cmdDecay )
 
@@ -24,7 +24,7 @@ function PLUGIN:Init()
     end
 end
 
-function PLUGIN:PostInit()
+--[[function PLUGIN:PostInit()
     self:LoadFlags()
 end
 
@@ -38,7 +38,7 @@ function PLUGIN:LoadFlags()
     if (self.flagsPlugin) then
         self.flagsPlugin:AddFlagsChatCommand(self, "decay", { "decay" }, self.cmdDecay)
     end
-end
+end]]
 
 function PLUGIN:HasFlag(netuser, flag)
     if (netuser:CanAdmin()) then
@@ -59,17 +59,17 @@ function PLUGIN:LoadConfig()
         self:LoadDefaultConfig()
         if (res) then config.Save("decay") end
     end
---    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
---        print("Decay Control's configuration file needs to be updated - backing up and replacing with default values.")
---        ConfigUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
---        config.Save( "decay_backupconfig" )
---        self:LoadDefaultConfig()
---        config.Save( "decay" )
---    end
+    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
+        print("Decay Control: The configuration file needs to be updated - backing up and replacing with default values.  Decay is now OFF.")
+        ConfigUpdateAlertTimer = timer.Once( 60, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
+        config.Save( "decay_backupconfig" )
+        self:LoadDefaultConfig()
+        config.Save( "decay" )
+    end
 end
 
 function PLUGIN:LoadDefaultConfig()
-    self.Config.ConfigVersion = "0.5"
+    self.Config.ConfigVersion = "0.9"
     self.Config.CheckForUpdates = true
     self.Config.DecayOff = true
     self.Config.DecayTime = 4838400
@@ -77,29 +77,32 @@ function PLUGIN:LoadDefaultConfig()
     self.Config.CheckTickRate = true
 end
 
---function PLUGIN:UpdateCheck()
---    if (self.ResourceID) then
---        self.url = "http://wulf.im/oxide/" .. self.ResourceID
---        local request = webrequest.Send(url, function(code, response)
---            if (code == 200) then
---                if (self.Version < response) then
---                    updatemsg = "Alert: \"" .. self.Title .. "\" (filename " .. self.Filename .. ".lua) has an update available, from v" .. self.Version .. " to v" .. response .. "."
---                    error(updatemsg)
---                    error("Visit http://forum.rustoxide.com/resources/" .. self.ResourceID .. "/ to download the latest version!")
---                    DecayControlUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat(updatemsg) end )
---                    else
---                end
---            else
---                updatefailed = true
---            end
---        end)
---        if ((not request) or (updatefailed)) then
---            errmsg = "Alert: Update Check Failed for \"" .. tostring(self.Title) .. "\" (filename " .. tostring(self.Filename) .. ".lua) v" .. tostring(self.Version) .. "."
---            DecayControlUpdateFailTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat( errmsg ) end )
---            error(errmsg)
---        end
---    end
---end
+function PLUGIN:UpdateCheck()
+    if (self.ResourceID) then
+        print("self.ResourceID: " .. self.ResourceID)
+        self.url = "http://wulf.im/oxide/" .. self.ResourceID
+        print("self.url: ".. self.url)
+        local request = webrequest.Send(url, function(code, response)
+            print("code: " .. code .. ", response: " .. response)
+            if (code == 200) then
+                if (self.Version < response) then
+                    local updatemsg = "Alert: \"" .. self.Title .. "\" (filename " .. self.Filename .. ".lua) has an update available, from v" .. self.Version .. " to v" .. response .. "."
+                    error(updatemsg)
+                    error("Visit http://forum.rustoxide.com/resources/" .. self.ResourceID .. "/ to download the latest version!")
+                    DecayControlUpdateAlertTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat(updatemsg) end )
+                    else
+                end
+            else
+                updatefailed = true
+            end
+        end)
+        if ((not request) or (updatefailed)) then
+            local errmsg = "Alert: Update Check Failed for \"" .. tostring(self.Title) .. "\" (filename " .. tostring(self.Filename) .. ".lua) v" .. tostring(self.Version) .. "."
+            DecayControlUpdateFailTimer = timer.Repeat( 60, 3, function() rust.BroadcastChat( errmsg ) end )
+            error(errmsg)
+        end
+    end
+end
 
 
 function PLUGIN:cmdDecay( netuser, args )
@@ -123,9 +126,9 @@ function PLUGIN:cmdDecay( netuser, args )
                     return
                 end
             else
-            -- Assume 'days' if the unit of DecayTime is not provided
+                -- Assume 'days' if the unit of DecayTime is not provided
                 rust.SendChatToUser("Decay Control: Assuming you meant " .. tonumber(args[1]) .. " days.")
-                self.Config.DecayTime = self:round( (args[1] *  86400), 0 )
+                self.Config.DecayTime = self:round( (tonumber(args[1]) *  86400), 0 )
             end
             self:EnableDecay( netuser )
         else
@@ -148,7 +151,7 @@ function PLUGIN:DisableDecay( netuser )
     end
     self.Config.DecayOff = true
     config.Save("decay")
-    offmsg = "Decay Control: Decay has been disabled."
+    local offmsg = "Decay Control: Decay has been disabled."
     if (netuser) then
         rust.SendChatToUser( netuser, offmsg )
     end
@@ -166,14 +169,21 @@ function PLUGIN:EnableDecay( netuser )
     end
     self.Config.DecayOff = false
     config.Save("decay")
-    onmsg = "Decay Control: Decay has been enabled."
+    local onmsg = "Decay Control: Decay has been enabled."
+    local minmsg = "Decay Control: Please note that with a very low DecayTime value (currently " .. self:CalculateDecayTime(self.Config.DecayTime) .. "), decay may behave unexpectedly."
     if (not netuser) then
         DecayRateSetTimer = timer.Once( 60, function() rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime))) end )
     else
         rust.RunServerCommand("decay.deploy_maxhealth_sec " .. math.floor(tonumber(self.Config.DecayTime)))
         rust.SendChatToUser( netuser, onmsg )
+        if (self.Config.DecayTime < 43200) then
+            rust.SendChatToUser( netuser, minmsg )
+        end
     end
     print(onmsg)
+    if (self.Config.DecayTime < 43200) then
+        print(minmsg)
+    end
 end
 
 function PLUGIN:toboolean(var)
@@ -197,15 +207,16 @@ function PLUGIN:CalculateDecayTime( secs )
 end
 
 function PLUGIN:CheckTickRate()
+    local errmsg = "Decay Control: DecayTickRate setting too low or not found - resetting to default (300)."
     if ((self.Config.CheckTickRate) and ((not Rust.decay.decaytickrate) or (Rust.decay.decaytickrate < 100))) then
-        error("Decay Control: DecayTickRate setting too low or not found - resetting to default (300).")
-        rust.BroadcastChat("Decay Control: DecayTickRate setting too low or not found - resetting to default (300).")
+        error(errmsg)
+        rust.BroadcastChat(errmsg)
         rust.RunServerCommand("decay.decaytickrate 300")
     end
 end
 
 function PLUGIN:PrintDecayStatus( netuser )
-    statusmsg = "Decay is currently " .. (self:toboolean(self.Config.DecayOff) and "OFF.  Decay Control is continuously keeping buildings from decaying. :)" or "ON, Decay Time is " .. self:CalculateDecayTime(self.Config.DecayTime) .. ".")
+    local statusmsg = "Decay is currently " .. (self:toboolean(self.Config.DecayOff) and "OFF.  Decay Control is continuously keeping buildings from decaying. :)" or "ON, Decay Time is " .. self:CalculateDecayTime(self.Config.DecayTime) .. ".")
     rust.SendChatToUser( netuser, statusmsg )
 end
 

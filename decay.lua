@@ -1,7 +1,7 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
 PLUGIN.Description   = "Turns building decay on or off, with the option to leave decay on but customise the time it takes for structures to decay."
-PLUGIN.Version       = "0.8.11-temp"
+PLUGIN.Version       = "0.8.11"
 PLUGIN.ConfigVersion = "0.5"
 PLUGIN.ResourceID    = "334"
 

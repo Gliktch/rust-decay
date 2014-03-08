@@ -1,8 +1,8 @@
 PLUGIN.Title         = "Decay Control"
 PLUGIN.Author        = "Gliktch"
 PLUGIN.Description   = "Turns building decay on or off, with the option to leave decay on but customise the time it takes for structures to decay."
-PLUGIN.Version       = "0.9.0"
-PLUGIN.ConfigVersion = "0.9"
+PLUGIN.Version       = "0.8.10-temp"
+PLUGIN.ConfigVersion = "0.5"
 PLUGIN.ResourceID    = "334"
 
 function PLUGIN:Init()
@@ -11,9 +11,9 @@ function PLUGIN:Init()
 
     self:LoadConfig()
 
-    if self.Config.CheckForUpdates then
+--[[    if self.Config.CheckForUpdates then
         self:UpdateCheck()
-    end
+    end]]--
 
     self:AddChatCommand( "decay", self.cmdDecay )
 
@@ -24,7 +24,7 @@ function PLUGIN:Init()
     end
 end
 
---[[function PLUGIN:PostInit()
+function PLUGIN:PostInit()
     self:LoadFlags()
 end
 
@@ -32,13 +32,13 @@ function PLUGIN:LoadFlags()
     self.oxminPlugin = plugins.Find("oxmin")
     if (self.oxminPlugin) then
         self.FLAG_DECAY = oxmin.AddFlag("decay")
-        self.oxminPlugin:AddExternalOxminChatCommand(self, "decay", { self.FLAG_DECAY }, self.cmdDecay)
+--        self.oxminPlugin:AddExternalOxminChatCommand(self, "decay", { self.FLAG_DECAY }, self.cmdDecay)
     end
     self.flagsPlugin = plugins.Find("flags")
-    if (self.flagsPlugin) then
-        self.flagsPlugin:AddFlagsChatCommand(self, "decay", { "decay" }, self.cmdDecay)
-    end
-end]]
+--    if (self.flagsPlugin) then
+--        self.flagsPlugin:AddFlagsChatCommand(self, "decay", { "decay" }, self.cmdDecay)
+--    end
+end
 
 function PLUGIN:HasFlag(netuser, flag)
     if (netuser:CanAdmin()) then
@@ -59,17 +59,17 @@ function PLUGIN:LoadConfig()
         self:LoadDefaultConfig()
         if (res) then config.Save("decay") end
     end
-    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
+--[[    if ( self.Config.ConfigVersion < self.ConfigVersion ) then
         print("Decay Control: The configuration file needs to be updated - backing up and replacing with default values.  Decay is now OFF.")
         ConfigUpdateAlertTimer = timer.Once( 60, function() rust.BroadcastChat("Decay Control: Changes in a recent update led to default values being loaded.  Decay is now OFF.") end )
         config.Save( "decay_backupconfig" )
         self:LoadDefaultConfig()
         config.Save( "decay" )
-    end
+    end]]--
 end
 
 function PLUGIN:LoadDefaultConfig()
-    self.Config.ConfigVersion = "0.9"
+    self.Config.ConfigVersion = "0.5"
     self.Config.CheckForUpdates = true
     self.Config.DecayOff = true
     self.Config.DecayTime = 4838400
@@ -77,6 +77,7 @@ function PLUGIN:LoadDefaultConfig()
     self.Config.CheckTickRate = true
 end
 
+--[[
 function PLUGIN:UpdateCheck()
     if (self.ResourceID) then
         print("self.ResourceID: " .. self.ResourceID)
@@ -103,7 +104,7 @@ function PLUGIN:UpdateCheck()
         end
     end
 end
-
+]]--
 
 function PLUGIN:cmdDecay( netuser, args )
     if (self:HasFlag(netuser,"decay")) then
